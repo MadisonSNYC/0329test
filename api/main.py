@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import traceback
 from openai import OpenAI
 import re
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -69,8 +70,24 @@ class TradeRequest(BaseModel):
 
 # Dummy data structures
 dummy_markets = [
-    {"market": "ExampleEvent1", "price": 0.55},
-    {"market": "ExampleEvent2", "price": 0.30},
+    {
+        "id": "ExampleEvent1", 
+        "title": "Example Event 1", 
+        "category": "Crypto", 
+        "yes_bid": 0.55, 
+        "yes_ask": 0.57, 
+        "volume": 1000,
+        "status": "active"
+    },
+    {
+        "id": "ExampleEvent2", 
+        "title": "Example Event 2", 
+        "category": "Economics", 
+        "yes_bid": 0.30, 
+        "yes_ask": 0.32, 
+        "volume": 750,
+        "status": "active"
+    },
 ]
 
 dummy_recommendations = [
@@ -280,8 +297,11 @@ def get_trade_feed():
         simplified = []
         for m in markets[:10]:  # Limit to 10 markets for readability
             market_data = {
-                "market": m.get("ticker", m.get("title", m.get("name", "Unknown"))),
-                "price": m.get("last_price", m.get("yes_bid", m.get("price", 0))),
+                "id": m.get("id") or m.get("ticker") or m.get("name", ""),
+                "title": m.get("title") or m.get("name") or m.get("ticker", "Unknown"),
+                "category": m.get("category") or m.get("series") or m.get("event", "General"),
+                "yes_bid": m.get("yes_bid") or m.get("last_price") or m.get("price", 0),
+                "yes_ask": m.get("yes_ask") or m.get("last_price") or m.get("price", 0),
                 "volume": m.get("volume", 0),
                 "status": m.get("status", "")
             }
@@ -492,7 +512,14 @@ Keep your response concise and formatted clearly for easy reading.
 def execute_trade(req: TradeRequest):
     """Execute a trade (stub)."""
     # In a real implementation, place an order via Kalshi API
-    return {"status": "executed", "trade_id": req.trade_id}
+    now = datetime.now().isoformat()
+    
+    return {
+        "status": "executed", 
+        "trade_id": req.trade_id,
+        "timestamp": now,
+        "details": "Trade simulated in development environment"
+    }
 
 # This will be used by Vercel serverless functions
 app_handler = app 

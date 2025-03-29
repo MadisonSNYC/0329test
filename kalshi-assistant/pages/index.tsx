@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { Market, Recommendation, RecommendationsResponse } from '../lib/types';
 
 export default function Home() {
   const { user, isLoading, error: authError } = useUser();
   const [strategy, setStrategy] = useState("");
-  const [recommendations, setRecommendations] = useState<any>(null);
-  const [markets, setMarkets] = useState<any[]>([]);
+  const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(null);
+  const [markets, setMarkets] = useState<Market[]>([]);
   const [useAI, setUseAI] = useState(true);  // true = use main AI (Python agent), false = use fallback OpenAI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export default function Home() {
       
       const data = await res.json();
       console.log('API response data:', data);
-      setRecommendations(data);
+      setRecommendations(data as RecommendationsResponse);
     } catch (err: any) {
       console.error("Error fetching recommendations:", err);
       setError(err.message || "Failed to fetch recommendations");
@@ -294,7 +295,7 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {Array.isArray(recommendations.recommendations) && recommendations.recommendations.map((rec: any, idx: number) => (
+                    {Array.isArray(recommendations.recommendations) && recommendations.recommendations.map((rec: Recommendation, idx: number) => (
                       <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f0f0f0' }}>
                         <td style={{ padding: '0.75rem', borderBottom: '1px solid #666', fontWeight: 'bold' }}>{rec.market}</td>
                         <td style={{ padding: '0.75rem', borderBottom: '1px solid #666', fontWeight: 'bold' }}>{rec.action}</td>
@@ -309,7 +310,7 @@ export default function Home() {
                   </tbody>
                 </table>
 
-                {Array.isArray(recommendations.recommendations) && recommendations.recommendations.map((rec: any, idx: number) => (
+                {Array.isArray(recommendations.recommendations) && recommendations.recommendations.map((rec: Recommendation, idx: number) => (
                   <div key={`rationale-${idx}`} style={{ 
                     marginTop: '1rem', 
                     padding: '0.75rem', 
