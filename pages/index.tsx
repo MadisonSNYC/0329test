@@ -175,6 +175,19 @@ export default function Home() {
           </li>
           <li>
             <a 
+              href="/dashboard-simple"
+              style={{ 
+                color: '#0070f3', 
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                fontSize: '1.1rem'
+              }}
+            >
+              Simple Dashboard
+            </a>
+          </li>
+          <li>
+            <a 
               href="/dashboard"
               style={{ 
                 color: '#0070f3', 
