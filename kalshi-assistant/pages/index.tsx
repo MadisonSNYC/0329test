@@ -17,15 +17,23 @@ export default function Home() {
     try {
       // Determine which backend source to use based on toggle
       const mode = useAI ? "agent" : "openai";
+      
+      // Use absolute URL with console logging for debugging
+      console.log(`Fetching from: /api/py/recommendations?mode=${mode}`);
+      
       const res = await fetch(`/api/py/recommendations?mode=${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ strategy })
       });
+      
       if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
+        console.error(`Server error: ${res.status} - ${res.statusText}`);
+        throw new Error(`Server error: ${res.status} - ${await res.text()}`);
       }
+      
       const data = await res.json();
+      console.log("Received data:", data);
       setRecommendations(data);
     } catch (err: any) {
       console.error("Error fetching recommendations:", err);
@@ -41,14 +49,24 @@ export default function Home() {
   };
 
   return (
-    <div>
+    <div style={{ 
+      backgroundColor: '#f8f9fa', 
+      minHeight: '100vh',
+      color: '#333333'
+    }}>
       <Head>
         <title>Kalshi Trading Assistant</title>
         <meta name="description" content="AI-powered Kalshi trading assistant" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <header style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem 2rem', borderBottom: '1px solid #eaeaea' }}>
+      <header style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        padding: '1rem 2rem', 
+        borderBottom: '1px solid #333',
+        backgroundColor: '#ffffff'
+      }}>
         {isLoading ? (
           <p>Loading...</p>
         ) : authError ? (
