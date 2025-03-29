@@ -9,6 +9,23 @@ import traceback
 from openai import OpenAI
 import re
 from datetime import datetime
+import logging
+
+# Simple debug trace file - accessible to all in the codebase
+def log_to_file(message):
+    with open("kalshi_debug.txt", "a") as f:
+        f.write(f"{datetime.now().isoformat()} - {message}\n")
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("kalshi_api.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger("kalshi_assistant")
 
 # Load environment variables
 load_dotenv()
@@ -172,23 +189,28 @@ async def health_check():
 @app.get("/api/feed")
 def get_trade_feed():
     """Return latest market feed from Kalshi API."""
-    print("Feed endpoint called")
+    log_to_file("Feed endpoint called")
+    logger.info("Feed endpoint called")
     
     if not KALSHI_API_KEY and not (KALSHI_EMAIL and KALSHI_PASSWORD):
         # No API credentials configured – return dummy data for testing
-        print("No API credentials found, returning dummy data")
+        log_to_file("❌ No API credentials found, returning dummy data")
+        logger.warning("❌ No API credentials found, returning dummy data")
         return {"markets": dummy_markets, "source": "dummy"}
     
     try:
         # Determine which auth method to use
         if KALSHI_API_KEY:
             # Use API key authentication
-            print("Using API key authentication")
+            log_to_file("✅ Kalshi API key found. Fetching real market feed...")
+            logger.info("✅ Kalshi API key found. Fetching real market feed...")
             
             # For v2 API (demo), we need to use a different endpoint structure
             if IS_DEMO:
                 # Demo environment API (v2)
                 url = f"{KALSHI_API_BASE}/markets"
+                log_to_file(f"📌 Using demo API: {url}")
+                logger.info(f"📌 Using demo API: {url}")
                 headers = {
                     "X-API-Key": KALSHI_API_KEY,
                     "Content-Type": "application/json"
@@ -196,32 +218,37 @@ def get_trade_feed():
             else:
                 # Production environment API (v1)
                 url = f"{KALSHI_API_BASE}/markets"
+                log_to_file(f"📌 Using production API: {url}")
+                logger.info(f"📌 Using production API: {url}")
                 headers = {"Authorization": f"Bearer {KALSHI_API_KEY}"}
                 
-            print(f"Making request to Kalshi markets endpoint")
+            log_to_file(f"Making request to Kalshi markets endpoint")
+            logger.info(f"Making request to Kalshi markets endpoint")
             resp = requests.get(url, headers=headers, timeout=10)
         else:
             # Use email/password authentication
-            print("Using email/password authentication")
+            logger.info("✅ Using email/password authentication to fetch real market feed...")
             
             # Auth URL depends on which environment we're using
             if IS_DEMO:
                 # Demo environment API (v2)
                 auth_url = f"{KALSHI_API_BASE}/login"
+                logger.info(f"📌 Using demo API auth: {auth_url}")
             else:
                 # Production environment API (v1)
                 auth_url = f"{KALSHI_API_BASE}/login"
+                logger.info(f"📌 Using production API auth: {auth_url}")
                 
             auth_data = {
                 "email": KALSHI_EMAIL,
                 "password": KALSHI_PASSWORD
             }
-            print(f"Making auth request to Kalshi login endpoint")
+            logger.info(f"Making auth request to Kalshi login endpoint")
             try:
                 auth_resp = requests.post(auth_url, json=auth_data, timeout=10)
                 auth_resp.raise_for_status()
             except requests.exceptions.RequestException as e:
-                print(f"Authentication failed: {str(e)}")
+                logger.error(f"❌ Authentication failed: {str(e)}")
                 return {
                     "markets": dummy_markets, 
                     "source": "error", 
@@ -240,7 +267,7 @@ def get_trade_feed():
                     token = auth_resp.json().get("token")
                     headers = {"Authorization": f"Bearer {token}"}
             except (json.JSONDecodeError, AttributeError) as e:
-                print(f"Failed to parse authentication response: {str(e)}")
+                logger.error(f"❌ Failed to parse authentication response: {str(e)}")
                 return {
                     "markets": dummy_markets, 
                     "source": "error", 
@@ -253,12 +280,14 @@ def get_trade_feed():
             else:
                 url = f"{KALSHI_API_BASE}/markets"
                 
-            print(f"Making request to Kalshi markets endpoint")
+            logger.info(f"Making request to Kalshi markets endpoint")
             resp = requests.get(url, headers=headers, timeout=10)
         
-        print(f"API response status: {resp.status_code}")
+        log_to_file(f"API response status: {resp.status_code}")
+        logger.info(f"API response status: {resp.status_code}")
         if resp.status_code != 200:
-            print(f"Error response from Kalshi API with status code: {resp.status_code}")
+            log_to_file(f"❌ Error response from Kalshi API with status code: {resp.status_code}")
+            logger.error(f"❌ Error response from Kalshi API with status code: {resp.status_code}")
             return {
                 "markets": dummy_markets, 
                 "source": "error", 
@@ -268,7 +297,8 @@ def get_trade_feed():
         try:
             data = resp.json()
         except json.JSONDecodeError as e:
-            print(f"Failed to parse Kalshi API response: {str(e)}")
+            log_to_file(f"❌ Failed to parse Kalshi API response: {str(e)}")
+            logger.error(f"❌ Failed to parse Kalshi API response: {str(e)}")
             return {
                 "markets": dummy_markets, 
                 "source": "error", 
@@ -282,11 +312,13 @@ def get_trade_feed():
         else:
             markets = data.get("markets", []) if isinstance(data, dict) else []
             
-        print(f"Retrieved {len(markets)} markets from API")
+        log_to_file(f"✅ Successfully retrieved {len(markets)} markets from Kalshi API")
+        logger.info(f"✅ Successfully retrieved {len(markets)} markets from Kalshi API")
         
         # If no markets were returned, use dummy data as fallback
         if not markets:
-            print("No markets returned from Kalshi API, using dummy data")
+            log_to_file("❌ No markets returned from Kalshi API, using dummy data")
+            logger.warning("❌ No markets returned from Kalshi API, using dummy data")
             return {
                 "markets": dummy_markets, 
                 "source": "empty_response", 
@@ -312,12 +344,14 @@ def get_trade_feed():
             
             simplified.append(market_data)
         
+        log_to_file("Returning real Kalshi market data with source='kalshi'")
+        
         return {"markets": simplified, "source": "kalshi"}
     
     except Exception as e:
         # Log the error and return dummy data as fallback
-        print(f"Error fetching Kalshi markets: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"❌ Error fetching Kalshi markets: {str(e)}")
+        logger.error(traceback.format_exc())
         return {
             "markets": dummy_markets, 
             "source": "error", 
