@@ -65,6 +65,7 @@ export default function Home() {
       
       const data = await res.json();
       console.log('Feed API response data:', data);
+      console.log("🧪 Market Feed:", data);
       console.log("🧪 Market Feed:", data.markets);
       setMarkets(data.markets || []);
     } catch (err) {
