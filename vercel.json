@@ -1,21 +1,7 @@
 {
   "version": 2,
   "framework": "nextjs",
-  "buildCommand": "cd kalshi-assistant && npm run build",
-  "installCommand": "cd kalshi-assistant && npm install",
-  "outputDirectory": "kalshi-assistant/.next",
-  "rewrites": [
-    { 
-      "source": "/api/py/feed", 
-      "destination": "/api/py/feed.js" 
-    },
-    { 
-      "source": "/api/py/recommendations", 
-      "destination": "/api/py/recommendations.js" 
-    },
-    { 
-      "source": "/api/:path*", 
-      "destination": "/api/:path*" 
-    }
-  ]
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": ".next"
 } 
