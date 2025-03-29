@@ -30,17 +30,6 @@ logger = logging.getLogger("kalshi_assistant")
 # Load environment variables
 load_dotenv()
 
-app = FastAPI()
-
-# Add CORS middleware to allow frontend requests
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, set this to your frontend URL
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Kalshi API configuration
 KALSHI_API_KEY = os.getenv("KALSHI_API_KEY")
 KALSHI_EMAIL = os.getenv("KALSHI_EMAIL")
@@ -77,6 +66,22 @@ print(f"KALSHI_PASSWORD: {'Present' if KALSHI_PASSWORD else 'Not set'}")
 print(f"KALSHI_API_SECRET: {'Present' if KALSHI_API_SECRET else 'Not set'}")
 print(f"OpenAI client initialized: {client is not None}")
 print(f"API Environment: {'DEMO' if IS_DEMO else 'PRODUCTION'}")
+
+# Add diagnostic info for Vercel deployment
+print("🧪 DEBUG - KALSHI_API_KEY loaded?", bool(KALSHI_API_KEY))
+print("🧪 DEBUG - KALSHI_EMAIL/PASSWORD loaded?", bool(KALSHI_EMAIL and KALSHI_PASSWORD))
+print("🧪 DEBUG - OPENAI_API_KEY loaded?", bool(OPENAI_API_KEY))
+
+app = FastAPI()
+
+# Add CORS middleware to allow frontend requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, set this to your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Pydantic models for request/response
 class RecommendationRequest(BaseModel):
@@ -196,6 +201,7 @@ def get_trade_feed():
         # No API credentials configured – return dummy data for testing
         log_to_file("❌ No API credentials found, returning dummy data")
         logger.warning("❌ No API credentials found, returning dummy data")
+        print("🛑 Using dummy market data fallback in /feed (no valid Kalshi credentials detected)")
         return {"markets": dummy_markets, "source": "dummy"}
     
     try:
@@ -362,6 +368,21 @@ def get_trade_feed():
 @app.post("/api/recommendations")
 def get_recommendations(req: RecommendationRequest, request: Request = None):
     """Generate trade recommendations using AI (OpenAI or custom)."""
+    logger.info(f"Recommendations requested for strategy: {req.strategy}")
+    log_to_file(f"Recommendations requested for strategy: {req.strategy}")
+    
+    # Start with fallback in case the real API call fails
+    if not req.strategy or req.strategy.strip() == "":
+        logger.warning("No strategy provided, using default recommendations")
+        print("🛑 Using dummy recommendations fallback in /recommendations - no strategy provided")
+        return add_allocation_to_recommendations(dummy_recommendations, "balanced")
+    
+    # If OpenAI is not configured, return dummy recommendations
+    if not client:
+        logger.warning("OpenAI client not initialized, using dummy recommendations")
+        print("🛑 Using dummy recommendations fallback in /recommendations - no valid OpenAI key")
+        return add_allocation_to_recommendations(dummy_recommendations, req.strategy)
+        
     strategy = req.strategy or ""
     
     # Check for mode parameter in query
