@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
@@ -6,6 +6,7 @@ export default function Home() {
   const { user, isLoading, error: authError } = useUser();
   const [strategy, setStrategy] = useState("");
   const [recommendations, setRecommendations] = useState<any>(null);
+  const [markets, setMarkets] = useState<any[]>([]);
   const [useAI, setUseAI] = useState(true);  // true = use main AI (Python agent), false = use fallback OpenAI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,29 +20,60 @@ export default function Home() {
       const mode = useAI ? "agent" : "openai";
       
       // Use absolute URL with console logging for debugging
-      console.log(`Fetching from: /api/py/recommendations?mode=${mode}`);
+      const apiUrl = `/api/py/recommendations?mode=${mode}`;
+      console.log('Fetching recommendations from:', apiUrl);
       
-      const res = await fetch(`/api/py/recommendations?mode=${mode}`, {
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ strategy })
       });
       
+      console.log('API response status:', res.status);
+      
       if (!res.ok) {
-        console.error(`Server error: ${res.status} - ${res.statusText}`);
-        throw new Error(`Server error: ${res.status} - ${await res.text()}`);
+        const errorText = await res.text();
+        console.error('API error response:', errorText);
+        throw new Error(`Server responded with ${res.status}: ${errorText}`);
       }
       
       const data = await res.json();
-      console.log("Received data:", data);
+      console.log('API response data:', data);
       setRecommendations(data);
     } catch (err: any) {
       console.error("Error fetching recommendations:", err);
-      setError(err.message || "Unexpected error");
+      setError(err.message || "Failed to fetch recommendations");
     } finally {
       setLoading(false);
     }
   };
+
+  const fetchFeed = async () => {
+    try {
+      const apiUrl = '/api/py/feed';
+      console.log('Fetching feed from:', apiUrl);
+      
+      const res = await fetch(apiUrl);
+      console.log('Feed API response status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Feed API error response:', errorText);
+        throw new Error(`Server responded with ${res.status}: ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log('Feed API response data:', data);
+      setMarkets(data.markets || []);
+    } catch (err) {
+      console.error('Error fetching feed:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch market data when component mounts
+    fetchFeed();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +215,41 @@ export default function Home() {
             borderRadius: '4px'
           }}>
             Error: {error}
+          </div>
+        )}
+
+        {/* Markets Section */}
+        {markets.length > 0 && (
+          <div style={{ 
+            maxWidth: '800px', 
+            margin: '0 auto', 
+            marginBottom: '2rem', 
+            padding: '1.5rem', 
+            border: '1px solid #eaeaea', 
+            borderRadius: '10px',
+            backgroundColor: '#f8f8f8'
+          }}>
+            <h2 style={{ marginBottom: '1rem' }}>Available Markets</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#000000' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f0f0f0' }}>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ccc', fontWeight: 'bold' }}>Market</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ccc', fontWeight: 'bold' }}>Category</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ccc', fontWeight: 'bold' }}>Yes Price</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ccc', fontWeight: 'bold' }}>Volume</th>
+                </tr>
+              </thead>
+              <tbody>
+                {markets.map((market, idx) => (
+                  <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8f8f8' }}>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{market.title}</td>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{market.category}</td>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{(market.yes_ask * 100).toFixed(2)}%</td>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{market.volume.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
