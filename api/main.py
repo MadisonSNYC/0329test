@@ -55,6 +55,8 @@ else:
 if IS_DEMO:
     KALSHI_API_BASE = "https://demo-api.kalshi.co/trade-api/v2"
     print("Using DEMO Kalshi API environment")
+    # Override IS_DEMO to a string for comparison in the get_trade_feed function
+    IS_DEMO = "true"
 else:
     KALSHI_API_BASE = "https://trading-api.kalshi.com/v1"
     print("Using PRODUCTION Kalshi API environment")
