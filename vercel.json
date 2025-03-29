@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "buildCommand": "cd kalshi-assistant && npm run build",
+  "outputDirectory": "kalshi-assistant/.next",
+  "routes": [
+    {
+      "src": "/api/py/(.*)",
+      "dest": "/api/[...path].js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+} 
