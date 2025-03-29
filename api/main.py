@@ -193,46 +193,63 @@ async def health_check():
 @app.get("/feed")
 @app.get("/api/feed")
 def get_trade_feed():
-    """Return latest market feed from Kalshi API."""
-    log_to_file("Feed endpoint called")
-    logger.info("Feed endpoint called")
-    
-    if not any([KALSHI_API_KEY, KALSHI_EMAIL, KALSHI_PASSWORD]):
-        print("❌ No Kalshi credentials detected.")
-    else:
-        print("✅ Kalshi credentials detected. Proceeding with live fetch.")
+    print("🚦 Feed endpoint called.")
+    print("🔍 IS_DEMO:", IS_DEMO)
+    print("🔍 API Key:", "✅" if KALSHI_API_KEY else "❌")
+    print("🔍 Email login:", "✅" if KALSHI_EMAIL and KALSHI_PASSWORD else "❌")
 
     try:
         if IS_DEMO == "true":
-            print("🔁 Using Kalshi DEMO API")
+            print("🧪 Using Kalshi DEMO API")
             url = "https://demo-api.kalshi.co/trade-api/v2/markets"
             headers = {"X-API-Key": KALSHI_API_KEY}
-        else:
-            print("🔁 Using Kalshi PROD API")
+        elif KALSHI_API_KEY:
+            print("🧪 Using Kalshi PROD API with API Key")
             url = "https://trading-api.kalshi.com/v1/markets"
             headers = {"Authorization": f"Bearer {KALSHI_API_KEY}"}
+        elif KALSHI_EMAIL and KALSHI_PASSWORD:
+            print("🧪 Using Kalshi login flow")
+            login_url = "https://trading-api.kalshi.com/v1/login"
+            login_payload = {
+                "email": KALSHI_EMAIL,
+                "password": KALSHI_PASSWORD
+            }
+            login_resp = requests.post(login_url, json=login_payload)
+            token = login_resp.json().get("token")
+            headers = {"Authorization": f"Bearer {token}"}
+            url = "https://trading-api.kalshi.com/v1/markets"
+        else:
+            print("❌ No Kalshi credentials found. Fallback to dummy.")
+            return {"markets": dummy_markets, "source": "dummy"}
 
+        print(f"📡 Requesting from {url}")
         response = requests.get(url, headers=headers)
+        response.raise_for_status()
         data = response.json()
 
-        print("✅ Raw Kalshi Market Feed (first 1):", data.get("markets", [])[0])
+        print("✅ Fetched market count:", len(data.get("markets", [])))
+
+        formatted = []
+        for m in data.get("markets", [])[:10]:
+            formatted.append({
+                "title": m.get("title") or m.get("ticker"),
+                "category": m.get("category", "unknown"),
+                "yes_price": m.get("yes_bid") or m.get("last_price") or 0,
+                "volume": m.get("volume", 0)
+            })
 
         return {
-            "markets": [
-                {
-                    "title": m.get("title") or m.get("ticker"),
-                    "category": m.get("category", "unknown"),
-                    "yes_bid": m.get("yes_bid") or m.get("last_price") or m.get("price"),
-                    "volume": m.get("volume", 0)
-                }
-                for m in data.get("markets", [])[:10]
-            ],
+            "markets": formatted,
             "source": "kalshi"
         }
 
     except Exception as e:
-        print("❌ Kalshi Fetch Failed:", str(e))
-        return {"markets": dummy_markets, "source": "error", "error": str(e)}
+        print("❌ Error fetching Kalshi feed:", str(e))
+        return {
+            "markets": dummy_markets,
+            "source": "error",
+            "error": str(e)
+        }
 
 @app.post("/recommendations")
 @app.post("/api/recommendations")
