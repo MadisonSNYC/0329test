@@ -283,159 +283,72 @@ def get_recommendations(req: RecommendationRequest, request: Request = None):
         # Continue with empty market data rather than failing completely
     
     # 2. Prepare prompt for OpenAI
-    if can_use_openai:
-        # Format market data for the prompt
-        market_context = ""
-        for idx, market in enumerate(market_data[:5]):  # Limit to top 5 markets to save tokens
-            market_context += f"{idx+1}. Market: {market.get('market', 'Unknown')}, Price: {market.get('price', 0)}, "
-            if 'volume' in market:
-                market_context += f"Volume: {market.get('volume', 0)}, "
-            if 'status' in market:
-                market_context += f"Status: {market.get('status', '')}, "
-            if 'close_time' in market:
-                market_context += f"Close Time: {market.get('close_time', '')}"
-            market_context += "\n"
-        
-        # Craft a prompt for the OpenAI model
-        prompt = f"""You are a trading assistant for Kalshi, a regulated event contracts (prediction market) exchange.
-User strategy: "{strategy}"
+    if not can_use_openai:
+        print("🧠 Using Fallback: dummy_agent")
+        return {
+            "strategy": strategy,
+            "recommendations": dummy_recommendations,
+            "allocation": {
+                "total_allocated": "$1394.00",
+                "remaining_balance": "$8606.00",
+                "reserved_base": "$4000.00"
+            },
+            "source": "custom_agent"
+        }
 
-Current market data:
-{market_context}
+    print("🧠 Calling OpenAI with strategy prompt...")
 
-Based on the strategy and market conditions, create an immediate, actionable hourly trading strategy (Now – Next Hour).
+    prompt = f"""
+    You are a Kalshi trading assistant.
 
-For each recommendation, include:
-1. Market: Clearly specify the Kalshi market and asset
-2. Action: Explicitly indicate YES or NO
-3. Probability: Numerical % probability clearly stated
-4. Position: Clearly state the market price or range
-5. Contracts: Suggest the number of contracts based on investing a maximum of 15% of available funds per trade
-6. Cost: Estimate total cost
-7. Target Exit: Recommended exit price to secure profits
-8. Stop Loss: Recommended price to limit potential losses
-9. Rationale: A brief reason for the recommendation (1-2 sentences)
+    Strategy:
+    {strategy}
 
-Format each recommendation as:
-- Market: [market name]
-- Action: [Buy YES/Buy NO]
-- Probability: [XX%]
-- Position: [price range]
-- Contracts: [number]
-- Cost: [$XXX]
-- Target Exit: [$XX.XX]
-- Stop Loss: [$XX.XX]
-- Reason: [brief explanation]
+    Generate up to 3 hourly trade recommendations using Kalshi prediction markets.
+    Each recommendation should include:
+    - Market
+    - Action (Buy YES or Buy NO)
+    - Probability
+    - Position range
+    - Contracts
+    - Cost
+    - Target Exit
+    - Stop Loss
+    - 1-2 sentence rationale
 
-Also include a summary of fund allocation:
-- Total funds allocated for these trades
-- Remaining balance for next trading phase
-- Reserved untouched base amount (40% of total)
+    Also summarize fund allocation: total allocated, remaining, and base reserve.
 
-Assume a starting balance of $10,000.
-Keep your response concise and formatted clearly for easy reading.
-"""
+    Respond ONLY with structured output in markdown format.
+    """
 
-        try:
-            # Call OpenAI API with the prompt using the newer client format
-            print("Making OpenAI API request for recommendations")
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",  # or "gpt-4" for more advanced reasoning
-                messages=[
-                    {"role": "system", "content": "You are a helpful trading assistant for Kalshi prediction markets."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=300,
-                temperature=0.7
-            )
-            
-            # Extract the response text
-            ai_text = response.choices[0].message.content.strip()
-            
-            # Try to parse the AI output into structured format
-            try:
-                # Split by recommendations and parse
-                structured_recs = []
-                raw_recommendations = ai_text.split("\n\n")
-                
-                recommendation_pattern = re.compile(r"- (Market|Action|Probability|Position|Contracts|Cost|Target Exit|Stop Loss|Reason): (.*)")
-                current_rec = {}
-                
-                for line in ai_text.split("\n"):
-                    match = recommendation_pattern.match(line.strip())
-                    if match:
-                        key, value = match.groups()
-                        # Convert keys to snake_case
-                        key = key.lower().replace(" ", "_")
-                        current_rec[key] = value
-                    elif line.strip() == "" and current_rec:
-                        # Empty line and we have a current rec, so add it
-                        if 'market' in current_rec:  # Only add if it has at least a market
-                            structured_recs.append(current_rec)
-                            current_rec = {}
-                
-                # Add the last one if not empty
-                if current_rec and 'market' in current_rec:
-                    structured_recs.append(current_rec)
-                
-                # Extract allocation information if present
-                allocation_info = {
-                    "total_allocated": "N/A",
-                    "remaining_balance": "N/A",
-                    "reserved_base": "N/A"
-                }
-                
-                # Look for allocation info in the text
-                allocation_pattern = re.compile(r"(Total funds allocated|Remaining balance|Reserved untouched base amount): (\$[\d,]+\.?\d*)")
-                for line in ai_text.split("\n"):
-                    match = allocation_pattern.search(line)
-                    if match:
-                        key, value = match.groups()
-                        if "Total funds" in key:
-                            allocation_info["total_allocated"] = value
-                        elif "Remaining balance" in key:
-                            allocation_info["remaining_balance"] = value
-                        elif "Reserved" in key:
-                            allocation_info["reserved_base"] = value
-                
-                # If we found structured recommendations, return them
-                if structured_recs:
-                    return {
-                        "strategy": strategy,
-                        "recommendations": structured_recs,
-                        "allocation": allocation_info,
-                        "source": "openai"
-                    }
-            except Exception as e:
-                print(f"Error parsing AI response into structured format: {e}")
-                # Fall through to return raw text if parsing fails
-            
-            # For MVP, we'll return the raw text if parsing fails
-            return {
-                "strategy": strategy, 
-                "recommendations": ai_text, 
-                "source": "openai"
-            }
-        except Exception as e:
-            # Log the error
-            print(f"OpenAI API error: {e}")
-            # Fallback to dummy recommendations on error
-            response_data = add_allocation_to_recommendations(dummy_recommendations, strategy)
-            response_data["source"] = "error"
-            response_data["error"] = str(e)
-            return response_data
-    else:
-        # Either we're not using the fallback or the API key isn't set
-        reason = "dummy"
-        if not OPENAI_API_KEY:
-            print("No OpenAI API key found, returning dummy recommendations")
-            reason = "no_api_key"
-        elif not use_fallback:
-            reason = "custom_agent"
-        
-        response_data = add_allocation_to_recommendations(dummy_recommendations, strategy)
-        response_data["source"] = reason
-        return response_data
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a Kalshi AI trade strategist."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3
+        )
+
+        raw_output = response.choices[0].message.content
+        print("✅ OpenAI Raw Response:", raw_output[:500])
+
+        return {
+            "strategy": strategy,
+            "recommendations": raw_output,
+            "source": "openai"
+        }
+
+    except Exception as e:
+        print("❌ OpenAI failed:", str(e))
+        return {
+            "strategy": strategy,
+            "recommendations": dummy_recommendations,
+            "allocation": {"total_allocated": "0", "remaining_balance": "0", "reserved_base": "0"},
+            "source": "error",
+            "error": str(e)
+        }
 
 @app.post("/execute")
 @app.post("/api/execute")

@@ -39,6 +39,7 @@ export default function Home() {
       
       const data = await res.json();
       console.log('API response data:', data);
+      console.log("🧪 Recommendation Response:", data);
       setRecommendations(data);
     } catch (err: any) {
       console.error("Error fetching recommendations:", err);
@@ -64,6 +65,7 @@ export default function Home() {
       
       const data = await res.json();
       console.log('Feed API response data:', data);
+      console.log("🧪 Market Feed:", data.markets);
       setMarkets(data.markets || []);
     } catch (err) {
       console.error('Error fetching feed:', err);
