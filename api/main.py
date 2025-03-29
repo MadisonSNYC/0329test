@@ -197,172 +197,42 @@ def get_trade_feed():
     log_to_file("Feed endpoint called")
     logger.info("Feed endpoint called")
     
-    if not KALSHI_API_KEY and not (KALSHI_EMAIL and KALSHI_PASSWORD):
-        # No API credentials configured – return dummy data for testing
-        log_to_file("❌ No API credentials found, returning dummy data")
-        logger.warning("❌ No API credentials found, returning dummy data")
-        print("🛑 Using dummy market data fallback in /feed (no valid Kalshi credentials detected)")
-        return {"markets": dummy_markets, "source": "dummy"}
-    
+    if not any([KALSHI_API_KEY, KALSHI_EMAIL, KALSHI_PASSWORD]):
+        print("❌ No Kalshi credentials detected.")
+    else:
+        print("✅ Kalshi credentials detected. Proceeding with live fetch.")
+
     try:
-        # Determine which auth method to use
-        if KALSHI_API_KEY:
-            # Use API key authentication
-            log_to_file("✅ Kalshi API key found. Fetching real market feed...")
-            logger.info("✅ Kalshi API key found. Fetching real market feed...")
-            
-            # For v2 API (demo), we need to use a different endpoint structure
-            if IS_DEMO:
-                # Demo environment API (v2)
-                url = f"{KALSHI_API_BASE}/markets"
-                log_to_file(f"📌 Using demo API: {url}")
-                logger.info(f"📌 Using demo API: {url}")
-                headers = {
-                    "X-API-Key": KALSHI_API_KEY,
-                    "Content-Type": "application/json"
-                }
-            else:
-                # Production environment API (v1)
-                url = f"{KALSHI_API_BASE}/markets"
-                log_to_file(f"📌 Using production API: {url}")
-                logger.info(f"📌 Using production API: {url}")
-                headers = {"Authorization": f"Bearer {KALSHI_API_KEY}"}
-                
-            log_to_file(f"Making request to Kalshi markets endpoint")
-            logger.info(f"Making request to Kalshi markets endpoint")
-            resp = requests.get(url, headers=headers, timeout=10)
+        if IS_DEMO == "true":
+            print("🔁 Using Kalshi DEMO API")
+            url = "https://demo-api.kalshi.co/trade-api/v2/markets"
+            headers = {"X-API-Key": KALSHI_API_KEY}
         else:
-            # Use email/password authentication
-            logger.info("✅ Using email/password authentication to fetch real market feed...")
-            
-            # Auth URL depends on which environment we're using
-            if IS_DEMO:
-                # Demo environment API (v2)
-                auth_url = f"{KALSHI_API_BASE}/login"
-                logger.info(f"📌 Using demo API auth: {auth_url}")
-            else:
-                # Production environment API (v1)
-                auth_url = f"{KALSHI_API_BASE}/login"
-                logger.info(f"📌 Using production API auth: {auth_url}")
-                
-            auth_data = {
-                "email": KALSHI_EMAIL,
-                "password": KALSHI_PASSWORD
-            }
-            logger.info(f"Making auth request to Kalshi login endpoint")
-            try:
-                auth_resp = requests.post(auth_url, json=auth_data, timeout=10)
-                auth_resp.raise_for_status()
-            except requests.exceptions.RequestException as e:
-                logger.error(f"❌ Authentication failed: {str(e)}")
-                return {
-                    "markets": dummy_markets, 
-                    "source": "error", 
-                    "error": f"Authentication failed: {str(e)}"
-                }
-            
-            # The token structure might differ between API versions
-            try:
-                if IS_DEMO:
-                    token = auth_resp.json().get("token")
-                    headers = {
-                        "Authorization": f"Bearer {token}",
-                        "Content-Type": "application/json"
-                    }
-                else:
-                    token = auth_resp.json().get("token")
-                    headers = {"Authorization": f"Bearer {token}"}
-            except (json.JSONDecodeError, AttributeError) as e:
-                logger.error(f"❌ Failed to parse authentication response: {str(e)}")
-                return {
-                    "markets": dummy_markets, 
-                    "source": "error", 
-                    "error": f"Failed to parse authentication response: {str(e)}"
-                }
-            
-            # Get markets based on environment
-            if IS_DEMO:
-                url = f"{KALSHI_API_BASE}/markets"
-            else:
-                url = f"{KALSHI_API_BASE}/markets"
-                
-            logger.info(f"Making request to Kalshi markets endpoint")
-            resp = requests.get(url, headers=headers, timeout=10)
-        
-        log_to_file(f"API response status: {resp.status_code}")
-        logger.info(f"API response status: {resp.status_code}")
-        if resp.status_code != 200:
-            log_to_file(f"❌ Error response from Kalshi API with status code: {resp.status_code}")
-            logger.error(f"❌ Error response from Kalshi API with status code: {resp.status_code}")
-            return {
-                "markets": dummy_markets, 
-                "source": "error", 
-                "error": f"Kalshi API returned status code {resp.status_code}"
-            }
-            
-        try:
-            data = resp.json()
-        except json.JSONDecodeError as e:
-            log_to_file(f"❌ Failed to parse Kalshi API response: {str(e)}")
-            logger.error(f"❌ Failed to parse Kalshi API response: {str(e)}")
-            return {
-                "markets": dummy_markets, 
-                "source": "error", 
-                "error": f"Failed to parse Kalshi API response: {str(e)}"
-            }
-        
-        # Extract and format market data
-        # The structure may differ between API versions
-        if IS_DEMO:
-            markets = data.get("markets", []) if isinstance(data, dict) else []
-        else:
-            markets = data.get("markets", []) if isinstance(data, dict) else []
-            
-        log_to_file(f"✅ Successfully retrieved {len(markets)} markets from Kalshi API")
-        logger.info(f"✅ Successfully retrieved {len(markets)} markets from Kalshi API")
-        
-        # If no markets were returned, use dummy data as fallback
-        if not markets:
-            log_to_file("❌ No markets returned from Kalshi API, using dummy data")
-            logger.warning("❌ No markets returned from Kalshi API, using dummy data")
-            return {
-                "markets": dummy_markets, 
-                "source": "empty_response", 
-                "error": "No markets returned from Kalshi API"
-            }
-            
-        # Simplify the response to include key information
-        simplified = []
-        for m in markets[:10]:  # Limit to 10 markets for readability
-            market_data = {
-                "id": m.get("id") or m.get("ticker") or m.get("name", ""),
-                "title": m.get("title") or m.get("name") or m.get("ticker", "Unknown"),
-                "category": m.get("category") or m.get("series") or m.get("event", "General"),
-                "yes_bid": m.get("yes_bid") or m.get("last_price") or m.get("price", 0),
-                "yes_ask": m.get("yes_ask") or m.get("last_price") or m.get("price", 0),
-                "volume": m.get("volume", 0),
-                "status": m.get("status", "")
-            }
-            
-            # Add close_time if available in this API version
-            if "close_time" in m:
-                market_data["close_time"] = m["close_time"]
-            
-            simplified.append(market_data)
-        
-        log_to_file("Returning real Kalshi market data with source='kalshi'")
-        
-        return {"markets": simplified, "source": "kalshi"}
-    
-    except Exception as e:
-        # Log the error and return dummy data as fallback
-        logger.error(f"❌ Error fetching Kalshi markets: {str(e)}")
-        logger.error(traceback.format_exc())
+            print("🔁 Using Kalshi PROD API")
+            url = "https://trading-api.kalshi.com/v1/markets"
+            headers = {"Authorization": f"Bearer {KALSHI_API_KEY}"}
+
+        response = requests.get(url, headers=headers)
+        data = response.json()
+
+        print("✅ Raw Kalshi Market Feed (first 1):", data.get("markets", [])[0])
+
         return {
-            "markets": dummy_markets, 
-            "source": "error", 
-            "error": str(e)
+            "markets": [
+                {
+                    "title": m.get("title") or m.get("ticker"),
+                    "category": m.get("category", "unknown"),
+                    "yes_bid": m.get("yes_bid") or m.get("last_price") or m.get("price"),
+                    "volume": m.get("volume", 0)
+                }
+                for m in data.get("markets", [])[:10]
+            ],
+            "source": "kalshi"
         }
+
+    except Exception as e:
+        print("❌ Kalshi Fetch Failed:", str(e))
+        return {"markets": dummy_markets, "source": "error", "error": str(e)}
 
 @app.post("/recommendations")
 @app.post("/api/recommendations")
