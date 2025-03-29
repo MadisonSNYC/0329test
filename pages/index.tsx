@@ -7,6 +7,7 @@ export default function Home() {
   const [strategy, setStrategy] = useState("");
   const [recommendations, setRecommendations] = useState<any>(null);
   const [markets, setMarkets] = useState<any[]>([]);
+  const [data, setData] = useState<any>(null);
   const [useAI, setUseAI] = useState(true);  // true = use main AI (Python agent), false = use fallback OpenAI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +69,7 @@ export default function Home() {
       console.log("🧪 Market Feed:", data);
       console.log("🧪 Market Feed:", data.markets);
       setMarkets(data.markets || []);
+      setData(data);
     } catch (err) {
       console.error('Error fetching feed:', err);
     }
@@ -306,6 +308,11 @@ export default function Home() {
             backgroundColor: '#f8f8f8'
           }}>
             <h2 style={{ marginBottom: '1rem' }}>Available Markets</h2>
+            {data?.source === 'kalshi' ? (
+              <p style={{ fontSize: '0.875rem', color: '#16a34a', marginBottom: '1rem' }}>Live Kalshi Data Active</p>
+            ) : (
+              <p style={{ fontSize: '0.875rem', color: '#ca8a04', marginBottom: '1rem' }}>Fallback: {data?.source}</p>
+            )}
             <table style={{ width: '100%', borderCollapse: 'collapse', color: '#000000' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f0f0f0' }}>
@@ -316,12 +323,12 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {markets.map((market, idx) => (
+                {markets.map((m, idx) => (
                   <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8f8f8' }}>
-                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{market.title}</td>
-                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{market.category}</td>
-                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{(market.yes_ask * 100).toFixed(2)}%</td>
-                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{market.volume.toLocaleString()}</td>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{m.title}</td>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{m.category}</td>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{(m.yes_price * 100).toFixed(2)}%</td>
+                    <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{m.volume.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
