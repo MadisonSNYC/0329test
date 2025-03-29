@@ -53,11 +53,12 @@ else:
     print("Using PRODUCTION Kalshi API environment")
 
 # Print environment variables for debugging (sensitive info will be masked)
-print(f"KALSHI_API_KEY: {'*****' if KALSHI_API_KEY else 'Not set'}")
-print(f"KALSHI_EMAIL: {'*****' if KALSHI_EMAIL else 'Not set'}")
-print(f"KALSHI_PASSWORD: {'*****' if KALSHI_PASSWORD else 'Not set'}")
-print(f"KALSHI_API_SECRET: {'*****' if KALSHI_API_SECRET else 'Not set'}")
+print(f"KALSHI_API_KEY: {'Present' if KALSHI_API_KEY else 'Not set'}")
+print(f"KALSHI_EMAIL: {'Present' if KALSHI_EMAIL else 'Not set'}")
+print(f"KALSHI_PASSWORD: {'Present' if KALSHI_PASSWORD else 'Not set'}")
+print(f"KALSHI_API_SECRET: {'Present' if KALSHI_API_SECRET else 'Not set'}")
 print(f"OpenAI client initialized: {client is not None}")
+print(f"API Environment: {'DEMO' if IS_DEMO else 'PRODUCTION'}")
 
 # Pydantic models for request/response
 class RecommendationRequest(BaseModel):
@@ -180,7 +181,7 @@ def get_trade_feed():
                 url = f"{KALSHI_API_BASE}/markets"
                 headers = {"Authorization": f"Bearer {KALSHI_API_KEY}"}
                 
-            print(f"Making request to {url}")
+            print(f"Making request to Kalshi markets endpoint")
             resp = requests.get(url, headers=headers, timeout=10)
         else:
             # Use email/password authentication
@@ -198,20 +199,36 @@ def get_trade_feed():
                 "email": KALSHI_EMAIL,
                 "password": KALSHI_PASSWORD
             }
-            print(f"Making auth request to {auth_url}")
-            auth_resp = requests.post(auth_url, json=auth_data, timeout=10)
-            auth_resp.raise_for_status()
+            print(f"Making auth request to Kalshi login endpoint")
+            try:
+                auth_resp = requests.post(auth_url, json=auth_data, timeout=10)
+                auth_resp.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                print(f"Authentication failed: {str(e)}")
+                return {
+                    "markets": dummy_markets, 
+                    "source": "error", 
+                    "error": f"Authentication failed: {str(e)}"
+                }
             
             # The token structure might differ between API versions
-            if IS_DEMO:
-                token = auth_resp.json().get("token")
-                headers = {
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
+            try:
+                if IS_DEMO:
+                    token = auth_resp.json().get("token")
+                    headers = {
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json"
+                    }
+                else:
+                    token = auth_resp.json().get("token")
+                    headers = {"Authorization": f"Bearer {token}"}
+            except (json.JSONDecodeError, AttributeError) as e:
+                print(f"Failed to parse authentication response: {str(e)}")
+                return {
+                    "markets": dummy_markets, 
+                    "source": "error", 
+                    "error": f"Failed to parse authentication response: {str(e)}"
                 }
-            else:
-                token = auth_resp.json().get("token")
-                headers = {"Authorization": f"Bearer {token}"}
             
             # Get markets based on environment
             if IS_DEMO:
@@ -219,16 +236,27 @@ def get_trade_feed():
             else:
                 url = f"{KALSHI_API_BASE}/markets"
                 
-            print(f"Making request to {url}")
+            print(f"Making request to Kalshi markets endpoint")
             resp = requests.get(url, headers=headers, timeout=10)
         
         print(f"API response status: {resp.status_code}")
         if resp.status_code != 200:
-            print(f"Error response: {resp.text}")
+            print(f"Error response from Kalshi API with status code: {resp.status_code}")
+            return {
+                "markets": dummy_markets, 
+                "source": "error", 
+                "error": f"Kalshi API returned status code {resp.status_code}"
+            }
             
-        resp.raise_for_status()
-        data = resp.json()
-        print(f"Response data: {data.keys() if isinstance(data, dict) else 'Not a dict'}")
+        try:
+            data = resp.json()
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse Kalshi API response: {str(e)}")
+            return {
+                "markets": dummy_markets, 
+                "source": "error", 
+                "error": f"Failed to parse Kalshi API response: {str(e)}"
+            }
         
         # Extract and format market data
         # The structure may differ between API versions
@@ -239,6 +267,15 @@ def get_trade_feed():
             
         print(f"Retrieved {len(markets)} markets from API")
         
+        # If no markets were returned, use dummy data as fallback
+        if not markets:
+            print("No markets returned from Kalshi API, using dummy data")
+            return {
+                "markets": dummy_markets, 
+                "source": "empty_response", 
+                "error": "No markets returned from Kalshi API"
+            }
+            
         # Simplify the response to include key information
         simplified = []
         for m in markets[:10]:  # Limit to 10 markets for readability
@@ -293,6 +330,7 @@ def get_recommendations(req: RecommendationRequest, request: Request = None):
         market_data = market_response.get("markets", [])  # reuse our feed function
     except Exception as e:
         print(f"Could not fetch market data: {e}")
+        # Continue with empty market data rather than failing completely
     
     # 2. Prepare prompt for OpenAI
     if can_use_openai:
@@ -350,6 +388,7 @@ Keep your response concise and formatted clearly for easy reading.
 
         try:
             # Call OpenAI API with the prompt using the newer client format
+            print("Making OpenAI API request for recommendations")
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",  # or "gpt-4" for more advanced reasoning
                 messages=[
@@ -430,7 +469,6 @@ Keep your response concise and formatted clearly for easy reading.
         except Exception as e:
             # Log the error
             print(f"OpenAI API error: {e}")
-            print(traceback.format_exc())
             # Fallback to dummy recommendations on error
             response_data = add_allocation_to_recommendations(dummy_recommendations, strategy)
             response_data["source"] = "error"
