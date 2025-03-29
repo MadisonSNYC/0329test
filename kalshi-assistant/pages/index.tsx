@@ -144,7 +144,7 @@ export default function Home() {
 
       <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         <h1 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '1rem' }}>
-          Kalshi Trading Assistant
+          Kalshi Trading Assistant Pro
         </h1>
         
         <p style={{ textAlign: 'center', fontSize: '1.2rem', marginBottom: '2rem' }}>
