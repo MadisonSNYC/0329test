@@ -238,117 +238,107 @@ def get_trade_feed():
 @app.post("/api/recommendations")
 def get_recommendations(req: RecommendationRequest, request: Request = None):
     """Generate trade recommendations using AI (OpenAI or custom)."""
-    logger.info(f"Recommendations requested for strategy: {req.strategy}")
-    log_to_file(f"Recommendations requested for strategy: {req.strategy}")
-    
-    # Start with fallback in case the real API call fails
-    if not req.strategy or req.strategy.strip() == "":
-        logger.warning("No strategy provided, using default recommendations")
-        print("🛑 Using dummy recommendations fallback in /recommendations - no strategy provided")
-        return add_allocation_to_recommendations(dummy_recommendations, "balanced")
-    
-    # If OpenAI is not configured, return dummy recommendations
-    if not client:
-        logger.warning("OpenAI client not initialized, using dummy recommendations")
-        print("🛑 Using dummy recommendations fallback in /recommendations - no valid OpenAI key")
-        return add_allocation_to_recommendations(dummy_recommendations, req.strategy)
-        
-    strategy = req.strategy or ""
+    strategy_text = req.strategy
+    print(f"🧠 STRATEGY PROMPT: {strategy_text}")
     
     # Check for mode parameter in query
     mode = "agent"  # default mode is agent
     if request:
         mode = request.query_params.get("mode", "agent")
     
-    # Add the requested debug prints
-    print("🎯 Mode selected:", mode)
-    if not OPENAI_API_KEY:
-        print("🛑 No OpenAI API key detected — using dummy fallback")
-    
-    # Set use_fallback based on mode
-    # If mode is "openai", use the OpenAI fallback
-    # If mode is "agent", prepare to use our custom agent (default to dummy for now)
-    use_fallback = (mode == "openai")
-    
-    # Check if we can use OpenAI (needs API key and fallback enabled)
-    can_use_openai = use_fallback and OPENAI_API_KEY and client
-    
-    # 1. Get current market data (to provide context to AI)
-    market_data = []
-    try:
-        market_response = get_trade_feed()
-        market_data = market_response.get("markets", [])  # reuse our feed function
-    except Exception as e:
-        print(f"Could not fetch market data: {e}")
-        # Continue with empty market data rather than failing completely
-    
-    # 2. Prepare prompt for OpenAI
-    if not can_use_openai:
-        print("🧠 Using Fallback: dummy_agent")
-        return {
-            "strategy": strategy,
-            "recommendations": dummy_recommendations,
-            "allocation": {
-                "total_allocated": "$1394.00",
-                "remaining_balance": "$8606.00",
-                "reserved_base": "$4000.00"
-            },
-            "source": "custom_agent"
-        }
+    print(f"⚙️ MODE SELECTED: {mode}")
 
-    print("🧠 Calling OpenAI with strategy prompt...")
+    if mode == "openai":
+        if not OPENAI_API_KEY:
+            print("❌ No OpenAI API Key - fallback to dummy")
+            return {
+                "strategy": strategy_text,
+                "recommendations": dummy_recommendations,
+                "allocation": {
+                    "total_allocated": "$0.00",
+                    "remaining_balance": "$10000.00",
+                    "reserved_base": "$4000.00"
+                },
+                "source": "fallback_openai"
+            }
 
-    prompt = f"""
-    You are a Kalshi trading assistant.
+        # Build prompt from user input
+        prompt = f"""
+You are a Kalshi trading assistant.
 
-    Strategy:
-    {strategy}
+Given this strategy:
+\"\"\"{strategy_text}\"\"\"
 
-    Generate up to 3 hourly trade recommendations using Kalshi prediction markets.
-    Each recommendation should include:
-    - Market
-    - Action (Buy YES or Buy NO)
-    - Probability
-    - Position range
-    - Contracts
-    - Cost
-    - Target Exit
-    - Stop Loss
-    - 1-2 sentence rationale
+Scan live Kalshi markets and generate 2–3 trades with the following fields:
+- Market
+- Action (Buy YES / NO)
+- Probability
+- Position (price or range)
+- Contracts
+- Cost
+- Target Exit
+- Stop Loss
+- Reason (1 sentence)
 
-    Also summarize fund allocation: total allocated, remaining, and base reserve.
+Then add a fund summary at the bottom:
+- Total Allocated
+- Remaining Balance
+- Reserved Base
 
-    Respond ONLY with structured output in markdown format.
-    """
+Respond in Markdown. DO NOT add any extra explanation.
+"""
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a Kalshi AI trade strategist."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3
-        )
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a Kalshi AI trade strategist."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+            )
 
-        raw_output = response.choices[0].message.content
-        print("✅ OpenAI Raw Response:", raw_output[:500])
+            ai_output = response.choices[0].message.content
+            print("✅ OpenAI Response:", ai_output[:300])
 
-        return {
-            "strategy": strategy,
-            "recommendations": raw_output,
-            "source": "openai"
-        }
+            return {
+                "strategy": strategy_text,
+                "recommendations": ai_output,
+                "allocation": {
+                    "total_allocated": "see text",
+                    "remaining_balance": "see text",
+                    "reserved_base": "see text"
+                },
+                "source": "openai"
+            }
 
-    except Exception as e:
-        print("❌ OpenAI failed:", str(e))
-        return {
-            "strategy": strategy,
-            "recommendations": dummy_recommendations,
-            "allocation": {"total_allocated": "0", "remaining_balance": "0", "reserved_base": "0"},
-            "source": "error",
-            "error": str(e)
-        }
+        except Exception as e:
+            print("❌ OpenAI failed:", str(e))
+            return {
+                "strategy": strategy_text,
+                "recommendations": dummy_recommendations,
+                "allocation": {
+                    "total_allocated": "$0.00",
+                    "remaining_balance": "$10000.00",
+                    "reserved_base": "$4000.00"
+                },
+                "source": "error",
+                "error": str(e)
+            }
+
+    # Default: agent mode (currently fallback)
+    print("🛠️ Using AGENT fallback (dummy logic)")
+
+    return {
+        "strategy": strategy_text,
+        "recommendations": dummy_recommendations,
+        "allocation": {
+            "total_allocated": "$1394.00",
+            "remaining_balance": "$8606.00",
+            "reserved_base": "$4000.00"
+        },
+        "source": "custom_agent"
+    }
 
 @app.post("/execute")
 @app.post("/api/execute")
