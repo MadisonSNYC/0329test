@@ -390,6 +390,11 @@ def get_recommendations(req: RecommendationRequest, request: Request = None):
     if request:
         mode = request.query_params.get("mode", "agent")
     
+    # Add the requested debug prints
+    print("🎯 Mode selected:", mode)
+    if not OPENAI_API_KEY:
+        print("🛑 No OpenAI API key detected — using dummy fallback")
+    
     # Set use_fallback based on mode
     # If mode is "openai", use the OpenAI fallback
     # If mode is "agent", prepare to use our custom agent (default to dummy for now)
