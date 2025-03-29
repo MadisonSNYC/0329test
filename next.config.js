@@ -5,7 +5,7 @@ const nextConfig = {
     return [
       {
         source: '/api/py/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001'}/api/:path*` // Proxy to FastAPI
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8002'}/api/:path*` // Proxy to FastAPI
       }
     ];
   }
