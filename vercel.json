@@ -3,17 +3,18 @@
   "framework": "nextjs",
   "buildCommand": "cd kalshi-assistant && npm run build",
   "outputDirectory": "kalshi-assistant/.next",
-  "routes": [
-    {
-      "src": "/api/py/(.*)",
-      "dest": "/api/[...path].js"
+  "rewrites": [
+    { 
+      "source": "/api/py/feed", 
+      "destination": "/api/py/feed.js" 
     },
-    {
-      "handle": "filesystem"
+    { 
+      "source": "/api/py/recommendations", 
+      "destination": "/api/py/recommendations.js" 
     },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+    { 
+      "source": "/api/:path*", 
+      "destination": "/api/:path*" 
     }
   ]
 } 
