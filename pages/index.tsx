@@ -142,6 +142,53 @@ export default function Home() {
         )}
       </header>
 
+      <nav style={{ 
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '0.75rem',
+        backgroundColor: '#f0f8ff', 
+        borderBottom: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+      }}>
+        <ul style={{ 
+          display: 'flex',
+          listStyle: 'none',
+          gap: '2rem',
+          margin: 0,
+          padding: 0
+        }}>
+          <li>
+            <a 
+              href="/"
+              style={{ 
+                color: '#0070f3', 
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                padding: '0.5rem 1rem',
+                borderRadius: '4px',
+                backgroundColor: 'rgba(0, 112, 243, 0.1)'
+              }}
+            >
+              Home
+            </a>
+          </li>
+          <li>
+            <a 
+              href="/test-api"
+              style={{ 
+                color: '#0070f3', 
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                fontSize: '1.1rem'
+              }}
+            >
+              Test API
+            </a>
+          </li>
+        </ul>
+      </nav>
+
       <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         <h1 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '1rem' }}>
           Kalshi Trading Assistant Pro
