@@ -2,6 +2,7 @@
   "version": 2,
   "framework": "nextjs",
   "buildCommand": "cd kalshi-assistant && npm run build",
+  "installCommand": "cd kalshi-assistant && npm install",
   "outputDirectory": "kalshi-assistant/.next",
   "rewrites": [
     { 
