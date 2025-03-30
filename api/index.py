@@ -24,6 +24,12 @@ def execute_trade(req: TradeRequest, request: Request = None):
         "action": req.action
     }
 
+@app.get("/api/execute")
+def explain_execute():
+    return {
+        "message": "Use POST method to execute a trade. This endpoint does not accept GET requests."
+    }
+
 @app.post("/public/execute")
 def public_execute_trade(req: TradeRequest, request: Request = None):
     return {
@@ -36,6 +42,12 @@ def public_execute_trade(req: TradeRequest, request: Request = None):
         "action": req.action
     }
 
+@app.get("/public/execute")
+def explain_public_execute():
+    return {
+        "message": "Use POST method to execute a trade. This endpoint does not accept GET requests."
+    }
+
 @app.post("/noauth/trade")
 def noauth_trade(req: TradeRequest, request: Request = None):
     return {
@@ -46,6 +58,12 @@ def noauth_trade(req: TradeRequest, request: Request = None):
         "price": req.price,
         "order_type": req.order_type,
         "action": req.action
+    }
+
+@app.get("/noauth/trade")
+def explain_noauth_trade():
+    return {
+        "message": "Use POST method to execute a trade. This endpoint does not accept GET requests."
     }
 
 @app.get("/api/feed")
