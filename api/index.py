@@ -1,3 +1,5 @@
+print("✅ FastAPI index.py was loaded")
+
 from fastapi import FastAPI, Request
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -35,6 +37,7 @@ def health():
 
 @app.get("/api/feed")
 def get_feed():
+    print("📡 /api/feed was hit")
     headers = {}
     try:
         if KALSHI_API_KEY and KALSHI_API_SECRET:
