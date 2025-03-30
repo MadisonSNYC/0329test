@@ -12,6 +12,16 @@
   ],
   "routes": [
     {
+      "src": "/api/execute",
+      "dest": "api/index.py",
+      "continue": true
+    },
+    {
+      "src": "/api/feed",
+      "dest": "api/index.py",
+      "continue": true
+    },
+    {
       "src": "/api/(.*)",
       "dest": "api/index.py"
     },
