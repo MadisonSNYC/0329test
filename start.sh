@@ -1,8 +1,4 @@
-#!/bin/bash
-set -e
+#!/bin/sh
 
-# Use Railway's provided PORT or fallback to 8000
-PORT=${PORT:-8000}
-
-echo "Starting server on port $PORT"
-exec uvicorn api.main:app --host 0.0.0.0 --port "$PORT"
+# Launch FastAPI on the dynamic Railway port (from env)
+exec uvicorn api.index:app --host 0.0.0.0 --port ${PORT:-8000}
