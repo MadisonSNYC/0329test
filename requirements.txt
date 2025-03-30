@@ -2,4 +2,5 @@ fastapi
 uvicorn
 requests
 python-dotenv  # for loading .env in development (optional)
-openai 
+openai
+cryptography  # for RSA signature generation 

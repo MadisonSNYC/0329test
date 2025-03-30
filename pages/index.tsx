@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import Header from '../components/Header';
+import MarketTable from '../components/MarketTable';
 
 export default function Home() {
   const { user, isLoading, error: authError } = useUser();
@@ -22,7 +24,7 @@ export default function Home() {
       const mode = useAI ? "agent" : "openai";
       
       // Use absolute URL with console logging for debugging
-      const apiUrl = `/api/py/recommendations?mode=${mode}`;
+      const apiUrl = `http://127.0.0.1:8002/api/recommendations?mode=${mode}`;
       console.log('Fetching recommendations from:', apiUrl);
       
       const res = await fetch(apiUrl, {
@@ -53,7 +55,7 @@ export default function Home() {
 
   const fetchFeed = async () => {
     try {
-      const apiUrl = '/api/py/feed';
+      const apiUrl = 'http://127.0.0.1:8002/api/feed';
       console.log('Fetching feed from:', apiUrl);
       
       const res = await fetch(apiUrl);
@@ -99,55 +101,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <header style={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        padding: '1rem 2rem', 
-        borderBottom: '1px solid #333',
-        backgroundColor: '#ffffff'
-      }}>
-        {isLoading ? (
-          <p>Loading...</p>
-        ) : authError ? (
-          <p>Error: {authError.message}</p>
-        ) : user ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {user.picture && (
-              <img 
-                src={user.picture} 
-                alt={user.name || 'User'} 
-                style={{ width: '32px', height: '32px', borderRadius: '50%' }} 
-              />
-            )}
-            <span>Welcome, {user.name}!</span>
-            <a 
-              href="/api/auth/logout" 
-              style={{ 
-                padding: '0.5rem 1rem', 
-                backgroundColor: '#f44336', 
-                color: 'white', 
-                borderRadius: '4px', 
-                textDecoration: 'none'
-              }}
-            >
-              Logout
-            </a>
-          </div>
-        ) : (
-          <a 
-            href="/api/auth/login" 
-            style={{ 
-              padding: '0.5rem 1rem', 
-              backgroundColor: '#0070f3', 
-              color: 'white', 
-              borderRadius: '4px', 
-              textDecoration: 'none'
-            }}
-          >
-            Login
-          </a>
-        )}
-      </header>
+      <Header user={user} isLoading={isLoading} authError={authError} />
 
       <nav style={{ 
         display: 'flex',
@@ -300,48 +254,7 @@ export default function Home() {
 
         {/* Markets Section */}
         {markets.length > 0 && (
-          <div style={{ 
-            maxWidth: '800px', 
-            margin: '0 auto', 
-            marginBottom: '2rem', 
-            padding: '1.5rem', 
-            border: '1px solid #eaeaea', 
-            borderRadius: '10px',
-            backgroundColor: '#f8f8f8'
-          }}>
-            <h2 style={{ marginBottom: '1rem' }}>Available Markets</h2>
-            <p style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.5rem', marginBottom: '1rem' }}>
-              Data source: <strong>{source || 'unknown'}</strong>
-            </p>
-            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#000000' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f0f0f0' }}>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ccc', fontWeight: 'bold' }}>Market</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ccc', fontWeight: 'bold' }}>Category</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ccc', fontWeight: 'bold' }}>Yes Price</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ccc', fontWeight: 'bold' }}>Volume</th>
-                </tr>
-              </thead>
-              <tbody>
-                {markets && markets.length > 0 ? (
-                  markets.map((m, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8f8f8' }}>
-                      <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{m.title || m.market || m.id}</td>
-                      <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{m.category}</td>
-                      <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{(parseFloat(m.yes_price || m.price) * 100).toFixed(2)}%</td>
-                      <td style={{ padding: '0.75rem', borderBottom: '1px solid #ddd', fontWeight: 'bold' }}>{m.volume?.toLocaleString() || 0}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '1rem', color: '#666' }}>
-                      No market data available.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <MarketTable markets={markets} source={source} />
         )}
 
         {/* Recommendations Output */}
