@@ -1,7 +1,28 @@
 import httpx
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from pydantic import BaseModel, Field
 
 app = FastAPI()
+
+class TradeRequest(BaseModel):
+    ticker: str
+    side: str
+    count: int
+    price: int
+    action: str = "buy"
+    order_type: str = Field("limit", alias="type")
+
+@app.post("/api/execute")
+def execute_trade(req: TradeRequest, request: Request = None):
+    return {
+        "status": "received",
+        "ticker": req.ticker,
+        "side": req.side,
+        "count": req.count,
+        "price": req.price,
+        "order_type": req.order_type,
+        "action": req.action
+    }
 
 @app.get("/api/feed")
 def final_kalshi_feed():
