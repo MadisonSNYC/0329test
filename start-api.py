@@ -13,7 +13,7 @@ def start_api_server():
     python_exec = sys.executable
     
     # Command to start uvicorn server
-    cmd = [python_exec, "-m", "uvicorn", "api.main:app", "--host", "127.0.0.1", "--port", "8001", "--reload"]
+    cmd = [python_exec, "-m", "uvicorn", "api.index:app", "--host", "127.0.0.1", "--port", "8001", "--reload"]
     
     # Print the command being executed
     print(f"Running command: {' '.join(cmd)}")
