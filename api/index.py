@@ -72,13 +72,13 @@ def get_feed():
         return {"markets": data.get("markets", []), "source": "kalshi"}
     except Exception as e:
         import traceback
-        error_details = traceback.format_exc()
-        print("❌ Traceback:", error_details)
+        trace = traceback.format_exc()
+        print("❌ ERROR in /api/feed:\n", trace)
         return {
-            "markets": [], 
-            "source": "error", 
+            "markets": [],
+            "source": "error",
             "error": str(e),
-            "trace": error_details  # <— helpful!
+            "trace": trace
         }
 
 @app.post("/api/execute")
