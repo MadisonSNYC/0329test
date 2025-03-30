@@ -4,4 +4,4 @@ app = FastAPI()
 
 @app.get("/api/feed")
 def read_feed():
-    return {"status": "live", "message": "FastAPI backend is running!"}
+    return {"status": "live"}

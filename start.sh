@@ -12,4 +12,4 @@ echo "🧠 Python version: $(python --version)"
 echo "🛠️ Starting Uvicorn..."
 
 # Start the FastAPI app
-exec python -m uvicorn api.index:app --host 0.0.0.0 --port "$PORT"
+exec uvicorn api.main:app --host 0.0.0.0 --port "$PORT"
