@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import Header from '../components/Header';
-import MarketTable from '../components/MarketTable';
+// import Header from '../components/Header';
+// import MarketTable from '../components/MarketTable';
 
 export default function Home() {
   const { user, isLoading, error: authError } = useUser();
@@ -101,7 +101,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <Header user={user} isLoading={isLoading} authError={authError} />
+      {/* <Header user={user} isLoading={isLoading} authError={authError} /> */}
 
       <nav style={{ 
         display: 'flex',
@@ -253,9 +253,9 @@ export default function Home() {
         )}
 
         {/* Markets Section */}
-        {markets.length > 0 && (
+        {/* {markets.length > 0 && (
           <MarketTable markets={markets} source={source} />
-        )}
+        )} */}
 
         {/* Recommendations Output */}
         {recommendations && !loading && (
