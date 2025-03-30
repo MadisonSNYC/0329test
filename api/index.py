@@ -150,3 +150,15 @@ def execute_trade(req: TradeRequest, request: Request = None):
 
 # Required for Vercel
 app_handler = app
+
+@app.get("/api/debug")
+def debug():
+    import traceback
+    try:
+        raise Exception("This is a controlled error for testing")
+    except Exception as e:
+        trace = traceback.format_exc()
+        return {
+            "error": str(e),
+            "trace": trace
+        }
