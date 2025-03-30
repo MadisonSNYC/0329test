@@ -34,3 +34,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+# Prepare a unified response format regardless of source
+def create_unified_response(source, content, allocation, error=None):
+    content_format = "markdown" if source == "openai" and not error else "json"
+    response = {
+        "strategy": strategy_text,
+        "recommendations": {
+            "format": content_format,
+            "content": content
+        },
+        "allocation": allocation,
+        "source": source
+    }
+    if error:
+        response["error"] = error
+    return response
