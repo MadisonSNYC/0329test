@@ -12,6 +12,10 @@
   ],
   "routes": [
     {
+      "src": "/noauth/trade",
+      "dest": "api/index.py"
+    },
+    {
       "src": "/public/execute",
       "dest": "api/index.py"
     },
