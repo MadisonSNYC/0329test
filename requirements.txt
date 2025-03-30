@@ -1,7 +1,5 @@
 fastapi
-uvicorn
-httpx[http2]
-requests
+uvicorn[standard]
+httpx
 python-dotenv
-cryptography
-uuid
+openai
