@@ -24,6 +24,18 @@ def execute_trade(req: TradeRequest, request: Request = None):
         "action": req.action
     }
 
+@app.post("/public/execute")
+def public_execute_trade(req: TradeRequest, request: Request = None):
+    return {
+        "status": "received",
+        "ticker": req.ticker,
+        "side": req.side,
+        "count": req.count,
+        "price": req.price,
+        "order_type": req.order_type,
+        "action": req.action
+    }
+
 @app.get("/api/feed")
 def final_kalshi_feed():
     import traceback
