@@ -13,14 +13,17 @@
   "routes": [
     {
       "src": "/noauth/trade",
+      "methods": ["GET", "POST"],
       "dest": "api/index.py"
     },
     {
       "src": "/public/execute",
+      "methods": ["GET", "POST"],
       "dest": "api/index.py"
     },
     {
       "src": "/api/execute",
+      "methods": ["GET", "POST"],
       "dest": "api/index.py",
       "headers": {
         "X-Auth-Skip": "true"
@@ -29,6 +32,7 @@
     },
     {
       "src": "/api/feed",
+      "methods": ["GET"],
       "dest": "api/index.py",
       "headers": {
         "X-Auth-Skip": "true"
