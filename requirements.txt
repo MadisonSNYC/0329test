@@ -1,3 +1,7 @@
 fastapi
 uvicorn
 httpx[http2]
+requests
+python-dotenv
+cryptography
+uuid
