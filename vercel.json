@@ -14,11 +14,17 @@
     {
       "src": "/api/execute",
       "dest": "api/index.py",
+      "headers": {
+        "X-Auth-Skip": "true"
+      },
       "continue": true
     },
     {
       "src": "/api/feed",
       "dest": "api/index.py",
+      "headers": {
+        "X-Auth-Skip": "true"
+      },
       "continue": true
     },
     {
