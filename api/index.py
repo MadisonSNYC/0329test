@@ -12,6 +12,41 @@ class TradeRequest(BaseModel):
     action: str = "buy"
     order_type: str = Field("limit", alias="type")
 
+@app.get("/")
+def root():
+    return {
+        "api_documentation": {
+            "endpoints": [
+                {
+                    "path": "/api/execute",
+                    "methods": ["GET", "POST"],
+                    "description": "Execute a trade. Use POST with JSON body."
+                },
+                {
+                    "path": "/public/execute",
+                    "methods": ["GET", "POST"],
+                    "description": "Public endpoint to execute a trade. Use POST with JSON body."
+                },
+                {
+                    "path": "/noauth/trade",
+                    "methods": ["GET", "POST"],
+                    "description": "No-auth endpoint to execute a trade. Use POST with JSON body."
+                },
+                {
+                    "path": "/api/feed",
+                    "methods": ["GET"],
+                    "description": "Get market data from Kalshi."
+                }
+            ],
+            "example_body": {
+                "ticker": "BTCUSD",
+                "side": "yes",
+                "count": 5,
+                "price": 50
+            }
+        }
+    }
+
 @app.post("/api/execute")
 def execute_trade(req: TradeRequest, request: Request = None):
     return {

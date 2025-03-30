@@ -12,6 +12,11 @@
   ],
   "routes": [
     {
+      "src": "/",
+      "methods": ["GET"],
+      "dest": "api/index.py"
+    },
+    {
       "src": "/noauth/trade",
       "methods": ["GET", "POST"],
       "dest": "api/index.py"
