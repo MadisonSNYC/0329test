@@ -1,3 +1,5 @@
+print("✅ FastAPI main.py is being loaded")
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
