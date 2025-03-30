@@ -1,6 +1,2 @@
 fastapi
 uvicorn
-requests
-cryptography
-python-dotenv
-openai 
