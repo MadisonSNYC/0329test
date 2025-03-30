@@ -1,8 +1,8 @@
-import { Sidebar } from "@/components/sidebar";
-import { Header } from "@/components/Header";
-import { MarketTrackers } from "@/components/market-trackers";
-import { StrategyPanel } from "@/components/strategy-panel";
-import RequireAuth from "@/components/require-auth";
+import { Sidebar } from "../components/sidebar";
+import { Header } from "../components/Header";
+import { MarketTrackers } from "../components/market-trackers";
+import { StrategyPanel } from "../components/strategy-panel";
+import RequireAuth from "../components/require-auth";
 
 export default function DashboardPage() {
   return (
