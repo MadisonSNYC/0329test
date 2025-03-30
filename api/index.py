@@ -71,7 +71,15 @@ def get_feed():
         data = response.json()
         return {"markets": data.get("markets", []), "source": "kalshi"}
     except Exception as e:
-        return {"markets": [], "source": "error", "error": str(e)}
+        import traceback
+        error_details = traceback.format_exc()
+        print("❌ Traceback:", error_details)
+        return {
+            "markets": [], 
+            "source": "error", 
+            "error": str(e),
+            "trace": error_details  # <— helpful!
+        }
 
 @app.post("/api/execute")
 def execute_trade(req: TradeRequest, request: Request = None):
